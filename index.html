@@ -3,157 +3,187 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global File Share Prototype</title>
+  <title>SkySend - Global File Share</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#c0eaff,#d4a5ff); min-height:100vh; }
+    a { text-decoration:none; color:inherit; }
+
+    /* Header */
+    header { display:flex; justify-content:space-between; align-items:center; padding:15px 20px; background:#4b6cb7; color:white; position:relative; }
+    header h1 { font-size:24px; }
+    .menu-toggle { display:none; font-size:26px; cursor:pointer; }
+    nav { display:flex; gap:20px; }
+    nav a { font-weight:bold; transition:0.3s; }
+    nav a:hover { color:#ffd700; }
+
+    @media(max-width:768px){
+      .menu-toggle { display:block; }
+      nav { display:none; flex-direction:column; position:absolute; top:60px; right:0; background:#4b6cb7; padding:15px; border-radius:8px; width:200px; }
+      nav.active { display:flex; }
     }
-    header {
-      width: 100%;
-      padding: 20px;
-      background-color: #4b6cb7;
-      color: white;
-      text-align: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    main {
-      flex: 1;
-      width: 90%;
-      max-width: 600px;
-      background: white;
-      margin: 30px 0;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    h2 {
-      color: #4b6cb7;
-    }
-    input[type="file"], textarea {
-      width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    button {
-      margin-top: 15px;
-      padding: 10px 20px;
-      background-color: #4b6cb7;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:hover {
-      background-color: #3a539b;
-    }
-    p {
-      word-break: break-word;
-      margin-top: 15px;
-      background: #f1f1f1;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
+
+    main { max-width:900px; margin:40px auto; background:white; border-radius:12px; padding:20px; box-shadow:0 6px 25px rgba(0,0,0,0.25); }
+
+    h2 { color:#4b6cb7; margin-bottom:15px; }
+    section { margin-bottom:40px; }
+    input[type="file"], textarea, input[type="text"] { width:100%; padding:12px; margin-top:10px; border-radius:6px; border:1px solid #ccc; font-size:14px; }
+    button { margin-top:12px; padding:10px 20px; background:#4b6cb7; color:white; border:none; border-radius:6px; cursor:pointer; transition:0.3s; font-size:14px; }
+    button:hover { background:#3a539b; }
+    p, .share-links, .history-list { background:#f1f1f1; padding:12px; border-radius:6px; margin-top:10px; word-break:break-word; max-height:250px; overflow-y:auto; }
+
+    /* Cards for multiple options */
+    .option-card { padding:15px; background:#eef2f7; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+
+    /* Footer */
+    footer { text-align:center; padding:15px; color:white; background:#4b6cb7; border-top:2px solid #3a539b; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Global File Share Prototype</h1>
-    <p>Simulates Bluetooth-style file sending with share requests and encryption</p>
-  </header>
-  <main>
-    <section>
-      <h2>1. Sender: Select a File</h2>
-      <input type="file" id="fileInput">
-      <button onclick="encryptFile()">Encrypt & Generate Share Link</button>
-      <p id="shareLink" placeholder="Share link will appear here"></p>
-    </section>
 
-    <section>
-      <h2>2. Recipient: Enter Share Link</h2>
-      <textarea id="linkInput" rows="5" placeholder="Paste share link here"></textarea>
-      <button onclick="downloadFile()">Accept & Download</button>
-    </section>
-  </main>
+<header>
+  <h1>SkySend</h1>
+  <span class="menu-toggle" onclick="toggleMenu()">☰</span>
+  <nav id="navMenu">
+    <a href="#upload">Upload</a>
+    <a href="#links">Accept Link</a>
+    <a href="#history">History</a>
+    <a href="#settings">Settings</a>
+    <a href="#about">About</a>
+  </nav>
+</header>
 
-  <script>
-    // Simple AES-GCM in-browser encryption
-    async function encryptFile() {
-      const file = document.getElementById('fileInput').files[0];
-      if (!file) return alert('Please select a file first');
+<main>
+  <!-- Upload & Encrypt -->
+  <section id="upload" class="option-card">
+    <h2>Upload & Encrypt File</h2>
+    <input type="file" id="fileInput">
+    <button onclick="encryptFile()">Encrypt & Generate Share Link</button>
+    <p class="share-links" id="shareLink">Your share link will appear here.</p>
+    <p id="notification" style="color:green; font-weight:bold;"></p>
+  </section>
 
-      const arrayBuffer = await file.arrayBuffer();
+  <!-- Accept Link -->
+  <section id="links" class="option-card">
+    <h2>Accept a Share Link</h2>
+    <textarea id="linkInput" rows="4" placeholder="Paste share link here"></textarea>
+    <button onclick="downloadFile()">Accept & Download</button>
+  </section>
 
-      // Generate a random key
-      const key = await crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
-      );
+  <!-- History / Saved Links -->
+  <section id="history" class="option-card">
+    <h2>History / Saved Links</h2>
+    <div class="history-list" id="historyList">Your previously generated links will appear here.</div>
+  </section>
 
-      // Export key to share
-      const rawKey = await crypto.subtle.exportKey("raw", key);
-      const keyStr = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+  <!-- Settings -->
+  <section id="settings" class="option-card">
+    <h2>Settings</h2>
+    <p>Customize your SkySend experience.</p>
+    <label>Username:</label>
+    <input type="text" id="username" placeholder="Enter your username">
+    <button onclick="saveSettings()">Save Settings</button>
+  </section>
 
-      // Generate IV
-      const iv = crypto.getRandomValues(new Uint8Array(12));
+  <!-- About -->
+  <section id="about" class="option-card">
+    <h2>About SkySend</h2>
+    <p>SkySend is a global file-sharing prototype. Encrypt files, generate share links, and send files worldwide. No social media required. Files are encrypted end-to-end. Notifications inform you when a recipient accepts your file.</p>
+  </section>
+</main>
 
-      // Encrypt
-      const encrypted = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        key,
-        arrayBuffer
-      );
+<footer>
+  &copy; 2026 SkySend | Prototype
+</footer>
 
-      const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-      const ivStr = btoa(String.fromCharCode(...iv));
+<!-- Socket.IO -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let currentFileId = null;
 
-      const shareData = JSON.stringify({
-        filename: file.name,
-        encrypted: encryptedBase64,
-        key: keyStr,
-        iv: ivStr
-      });
+  // Hamburger menu toggle
+  function toggleMenu() {
+    document.getElementById('navMenu').classList.toggle('active');
+  }
 
-      document.getElementById('shareLink').innerText = shareData;
+  const historyList = document.getElementById('historyList');
+
+  function addToHistory(link) {
+    const p = document.createElement('p');
+    p.innerHTML = `<a href="${link}" target="_blank">${link}</a>`;
+    historyList.prepend(p);
+  }
+
+  // Encrypt file and upload to backend
+  async function encryptFile() {
+    const file = document.getElementById('fileInput').files[0];
+    if(!file) return alert('Select a file first');
+
+    const arrayBuffer = await file.arrayBuffer();
+    const key = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, true, ["encrypt","decrypt"]);
+    const rawKey = await crypto.subtle.exportKey("raw", key);
+    const keyStr = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, arrayBuffer);
+    const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+    const ivStr = btoa(String.fromCharCode(...iv));
+
+    const formData = new FormData();
+    const blob = new Blob([encrypted]);
+    formData.append('file', blob, file.name);
+
+    const res = await fetch('/upload', {method:'POST', body:formData});
+    const data = await res.json();
+    document.getElementById('shareLink').innerHTML = `<a href="${data.link}" target="_blank">${data.link}</a>`;
+    currentFileId = data.id;
+    socket.emit('joinRoom', currentFileId);
+    addToHistory(data.link);
+  }
+
+  async function downloadFile() {
+    const linkData = document.getElementById('linkInput').value;
+    if(!linkData) return alert('Paste a share link');
+
+    try {
+      const data = JSON.parse(linkData);
+      const encrypted = Uint8Array.from(atob(data.encrypted), c=>c.charCodeAt(0));
+      const keyRaw = Uint8Array.from(atob(data.key), c=>c.charCodeAt(0));
+      const iv = Uint8Array.from(atob(data.iv), c=>c.charCodeAt(0));
+      const key = await crypto.subtle.importKey("raw", keyRaw, {name:"AES-GCM"}, true, ["decrypt"]);
+      const decrypted = await crypto.subtle.decrypt({name:"AES-GCM", iv}, key, encrypted);
+      const blob = new Blob([decrypted]);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = data.filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch(err) {
+      alert('Failed to decrypt/download file. Check the share link.');
+      console.error(err);
     }
+  }
 
-    async function downloadFile() {
-      const linkData = document.getElementById('linkInput').value;
-      if (!linkData) return alert('Please paste a share link');
+  // Save settings
+  function saveSettings() {
+    const username = document.getElementById('username').value.trim();
+    if(!username) return alert('Enter a username');
+    localStorage.setItem('skySendUsername', username);
+    alert(`Username saved: ${username}`);
+  }
 
-      try {
-        const data = JSON.parse(linkData);
-        const encrypted = Uint8Array.from(atob(data.encrypted), c => c.charCodeAt(0));
-        const keyRaw = Uint8Array.from(atob(data.key), c => c.charCodeAt(0));
-        const iv = Uint8Array.from(atob(data.iv), c => c.charCodeAt(0));
+  // Load username on page load
+  window.onload = function() {
+    const username = localStorage.getItem('skySendUsername');
+    if(username) document.getElementById('username').value = username;
+  }
 
-        const key = await crypto.subtle.importKey("raw", keyRaw, { name: "AES-GCM" }, true, ["decrypt"]);
-        const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, encrypted);
-
-        const blob = new Blob([decrypted]);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.filename;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        alert('Failed to decrypt/download file. Make sure the share link is correct.');
-        console.error(err);
-      }
-    }
-  </script>
+  // Socket notification from recipient
+  socket.on('notification', (msg) => {
+    const notif = document.getElementById('notification');
+    notif.innerText = msg;
+    notif.style.display = 'block';
+  });
+</script>
 </body>
 </html>
